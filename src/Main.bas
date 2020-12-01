@@ -8,9 +8,11 @@ Public gFSO As FileSystemObject
 Dim gCurrentDoc As ModelDoc2
 
 Sub Main()
+
     Set swApp = Application.SldWorks
     Set gFSO = New FileSystemObject
     'Set gDebugFile = gFSO.CreateTextFile("d:\debug.txt", True)
+    Tools.Init
     
     Set gCurrentDoc = swApp.ActiveDoc
     If gCurrentDoc Is Nothing Then Exit Sub
@@ -20,28 +22,38 @@ Sub Main()
     End If
     
     MainForm.Show
+    'gDebugFile.Close
+    
 End Sub
 
 Sub Run(SoughtForExtensions As Dictionary, target As String, excludeLines As String)
+
     Dim components As Dictionary
     Dim searchFolders As Dictionary
-    Dim Drawings As Collection
+    Dim Drawings As Dictionary
     Dim pattern As RegExp
     Dim NotFound As Dictionary
     Dim copied As Dictionary
     Dim exclude As Collection
     Dim currentDocConf As String
+    Dim currentAsm As AssemblyDoc
     
     Set components = New Dictionary
     Set searchFolders = New Dictionary
     Set exclude = CreateExclude(excludeLines)
     currentDocConf = gCurrentDoc.ConfigurationManager.ActiveConfiguration.name
+    
+    MainForm.Output "Решение компонентов сборки..."
+    Set currentAsm = gCurrentDoc
+    currentAsm.ResolveAllLightWeightComponents False
+    
     MainForm.Output "Анализ компонентов сборки..."
     AddComponent gCurrentDoc, currentDocConf, components, searchFolders, exclude, "", ""
     ComponentResearch gCurrentDoc, components, searchFolders, exclude, currentDocConf
     
-    Set Drawings = New Collection
+    Set Drawings = New Dictionary
     Set pattern = CreatePattern(SoughtForExtensions)
+    
     MainForm.Output "Поиск чертежей..."
     CollectAllDrawings pattern, searchFolders, Drawings
     
@@ -50,18 +62,23 @@ Sub Run(SoughtForExtensions As Dictionary, target As String, excludeLines As Str
     
     Set NotFound = New Dictionary
     Set copied = New Dictionary
-    MainForm.Output "Копирование чертежей..."
     
+    MainForm.Output "Копирование чертежей..."
     UniqueCopiedFiles components, copied, NotFound, SoughtForExtensions
     CopyFiles copied, target
     
-    MainForm.Output CreateOutput(copied.count, NotFound)
+    MainForm.Output CreateOutput(copied.Count, NotFound)
+    
 End Sub
 
 Function GetDefaultTarget() As String
+
     GetDefaultTarget = gFSO.GetParentFolderName(gCurrentDoc.GetPathName) + "\Чертежи в архив"
+    
 End Function
 
 Function GetLogFileName() As String
+
    GetLogFileName = gFSO.GetParentFolderName(gCurrentDoc.GetPathName) + "\Не найдены чертежи.txt"
+   
 End Function

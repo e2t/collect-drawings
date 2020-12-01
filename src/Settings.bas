@@ -9,7 +9,7 @@ Sub SaveStrSetting(key As String, value As String)
 End Sub
 
 Sub SaveIntSetting(key As String, value As Integer)
-    SaveStrSetting key, str(value)
+    SaveStrSetting key, Str(value)
 End Sub
 
 Sub SaveBoolSetting(key As String, value As Boolean)
@@ -45,5 +45,5 @@ Function StrToBool(value As String) As Boolean
 End Function
 
 Function BoolToStr(value As Boolean) As String
-    BoolToStr = str(CInt(value))
+    BoolToStr = Str(CInt(value))
 End Function

@@ -5,22 +5,45 @@ Const gPropertyDesignation = "Обозначение"
 Const gPropertyName = "Наименование"
 Const gPropertyBlank = "Заготовка"
 
-Sub MatchFiles(ByRef components As Dictionary, Drawings As Collection)
-    Dim ci_ As Variant
-    Dim ci As ComponentInfo
-    Dim drw_ As Variant
-    Dim drw As String
-    
-    For Each ci_ In components.Items
-        Set ci = ci_
-        For Each drw_ In Drawings
-            drw = drw_
-            CheckMatchFileAndComponent drw, ci
-        Next
-    Next
+Dim gRegex As RegExp
+
+Function Init()
+
+   Set gRegex = New RegExp
+   gRegex.Global = True
+   gRegex.IgnoreCase = True
+   
+End Function
+
+Sub MatchFiles(ByRef components As Dictionary, ByRef Drawings As Dictionary)
+
+   Dim ci_ As Variant
+   Dim ci As ComponentInfo
+   Dim drw_ As Variant
+   Dim drw As String
+   Dim key As String
+   
+   For Each ci_ In components.Items
+      Set ci = ci_
+      key = ci.Doc.GetPathName
+      
+      For Each drw_ In Drawings.Keys
+         drw = drw_
+         Select Case Drawings(drw)
+            Case ""
+               If CheckMatchFileAndComponent(drw, ci) Then
+                  Drawings(drw) = key
+               End If
+            Case key
+               CheckMatchFileAndComponent drw, ci
+         End Select
+      Next
+   Next
+   
 End Sub
 
 Function HaveThisDrawingFormat(Drawings As Dictionary, Extension As String) As Boolean
+
    Dim I As Variant
    
    HaveThisDrawingFormat = False
@@ -30,10 +53,12 @@ Function HaveThisDrawingFormat(Drawings As Dictionary, Extension As String) As B
          Exit For
       End If
    Next
+   
 End Function
 
 Sub UniqueCopiedFiles(components As Dictionary, ByRef copied As Dictionary, _
                       ByRef NotFound As Dictionary, SoughtForExtensions As Dictionary)
+                      
    Dim ci_ As Variant
    Dim ci As ComponentInfo
    Dim IsSheetDetail As RegExp
@@ -65,16 +90,18 @@ Sub UniqueCopiedFiles(components As Dictionary, ByRef copied As Dictionary, _
          End If
       End If
    Next
+   
 End Sub
 
-Sub AssignItem(ci As ComponentInfo, VeritacalLineSeparatedExtensions As String, _
+Sub AssignItem(ci As ComponentInfo, VerticalLineSeparatedExtensions As String, _
                ByRef copied As Dictionary, ByRef NotFound As Dictionary)
+               
    Dim rec As DrawingRecord
    Dim Extension As Variant
    Dim Found As Boolean
    
    Found = False
-   For Each Extension In Split(VeritacalLineSeparatedExtensions, "|")
+   For Each Extension In Split(VerticalLineSeparatedExtensions, "|")
       If ci.Drawings.Exists(Extension) Then
          Set rec = ci.Drawings(Extension)
          AddUniqueItemInDict rec.path, ci.Parent, copied
@@ -82,36 +109,40 @@ Sub AssignItem(ci As ComponentInfo, VeritacalLineSeparatedExtensions As String, 
       End If
    Next
    If Not Found Then
-      AddUniqueItemInDict ci, 0, NotFound(VeritacalLineSeparatedExtensions)
+      AddUniqueItemInDict ci, 0, NotFound(VerticalLineSeparatedExtensions)
    End If
+   
 End Sub
 
 Sub CopyFiles(copied As Dictionary, target As String)
-    Dim f_ As Variant
-    Dim f As String
-    Dim newname As String
-    Dim FolderName As String
+
+   Dim f_ As Variant
+   Dim f As String
+   Dim newname As String
+   Dim FolderName As String
+   
+   If Not gFSO.FolderExists(target) Then
+      gFSO.CreateFolder target
+   End If
+   
+   For Each f_ In copied.Keys
+      f = f_
+      FolderName = target + "\" + copied(f)
+      If Not gFSO.FolderExists(FolderName) Then
+         gFSO.CreateFolder FolderName
+      End If
+      
+      newname = FolderName + "\" + gFSO.GetFileName(f)
+      
+      If LCase(f) <> LCase(newname) Then
+         gFSO.CopyFile f, newname
+      End If
+   Next
     
-    If Not gFSO.FolderExists(target) Then
-        gFSO.CreateFolder target
-    End If
-    
-    For Each f_ In copied.Keys
-        f = f_
-        FolderName = target + "\" + copied(f)
-        If Not gFSO.FolderExists(FolderName) Then
-            gFSO.CreateFolder FolderName
-        End If
-        
-        newname = FolderName + "\" + gFSO.GetFileName(f)
-        
-        If LCase(f) <> LCase(newname) Then
-            gFSO.CopyFile f, newname
-        End If
-    Next
 End Sub
 
 Function CreateOutput(foundCount As Integer, NotFound As Dictionary) As String
+
    Dim ci_ As Variant
    Dim ci As ComponentInfo
    Dim text As String
@@ -119,95 +150,138 @@ Function CreateOutput(foundCount As Integer, NotFound As Dictionary) As String
    Dim I As Long
    Dim Extension As Variant
    Dim NotFoundSomeFormat As Dictionary
+   Dim FirstTime As Boolean
    
-   text = "Найдено чертежей: " + str(foundCount)
+   text = "Найдено чертежей: " + Str(foundCount)
+   FirstTime = True
    
    For Each Extension In NotFound
       Set NotFoundSomeFormat = NotFound(Extension)
-      If NotFoundSomeFormat.count > 0 Then
-         ReDim notfoundArray(NotFoundSomeFormat.count - 1)
+      If NotFoundSomeFormat.Count > 0 Then
+         ReDim notfoundArray(NotFoundSomeFormat.Count - 1)
          text = text + vbNewLine + vbNewLine + "Не найдены чертежи " + UCase(Extension) + " для:"
          I = -1
          For Each ci_ In NotFoundSomeFormat.Keys
             Set ci = ci_
             I = I + 1
             notfoundArray(I) = Trim(ci.PropertyDesignation + " " + ci.PropertyName) + _
-                               " [файл: " + gFSO.GetFileName(ci.Doc.GetPathName) + " @ " + ci.Conf + _
+                               " [файл: " + gFSO.GetFileName(ci.Doc.GetPathName) + " @ " + ci.conf + _
                                " ]"
          Next
          QuickSort notfoundArray, 0, I
-         LogNotFoundArray notfoundArray
+         LogNotFoundArray notfoundArray, FirstTime
          text = text + vbNewLine + Join(notfoundArray, vbNewLine)
       End If
    Next
    CreateOutput = text
+   
 End Function
 
-Sub LogNotFoundArray(notfoundArray() As String)
+Sub LogNotFoundArray(notfoundArray() As String, ByRef FirstTime As Boolean)
+
    Dim FileStream As TextStream
    Dim I As Variant
-   
-   Set FileStream = gFSO.OpenTextFile(GetLogFileName, ForWriting, True)
+   Dim Mode As IOMode
+
+   If FirstTime Then
+      Mode = ForWriting
+      FirstTime = False
+   Else
+      Mode = ForAppending
+   End If
+   Set FileStream = gFSO.OpenTextFile(GetLogFileName, Mode, True)
+   If Mode = ForAppending Then
+      FileStream.WriteBlankLines 1
+   End If
    For Each I In notfoundArray
       FileStream.WriteLine I
    Next
    FileStream.Close
+   
 End Sub
 
 'Функция-сокращение для любых словарей.
 'True - если был создан новый объект, False - если объект существовал.
 Function AddUniqueItemInDict(key As Variant, item As Variant, ByRef dict As Dictionary) As Boolean
-    AddUniqueItemInDict = Not dict.Exists(key)
-    If AddUniqueItemInDict Then
-        dict.Add key, item
-    End If
+
+   AddUniqueItemInDict = Not dict.Exists(key)
+   If AddUniqueItemInDict Then
+      dict.Add key, item
+   End If
+    
+End Function
+
+Function IsArrayEmpty(ByRef anArray As Variant) As Boolean
+
+   Dim I As Integer
+ 
+   On Error GoTo ArrayIsEmpty
+   IsArrayEmpty = LBound(anArray) > UBound(anArray)
+   Exit Function
+ArrayIsEmpty:
+   IsArrayEmpty = True
+
 End Function
 
 Sub ComponentResearch(asmDoc As ModelDoc2, ByRef components As Dictionary, ByRef searchFolders As Dictionary, _
                       exclude As Collection, asmConf As String)
-    Dim comp_ As Variant
-    Dim comp As Component2
-    Dim Doc As ModelDoc2
-    Dim asm As AssemblyDoc
+                      
+   Dim comp_ As Variant
+   Dim comp As Component2
+   Dim Doc As ModelDoc2
+   Dim asm As AssemblyDoc
+   Dim componentArray As Variant
+   Dim conf As String
+   
+   Set asm = asmDoc
+   componentArray = asm.GetComponents(True)
+   If Not IsArrayEmpty(componentArray) Then 'бывают вспомогательные пустые сборки
+      For Each comp_ In componentArray
+         Set comp = comp_
+         If comp.IsSuppressed Then  'погашен
+            GoTo NextComp
+         End If
+         Set Doc = comp.GetModelDoc2
+         If Doc Is Nothing Then  'не найден
+            GoTo NextComp
+         End If
+         conf = comp.ReferencedConfiguration
+         
+         If AddComponent(Doc, conf, components, searchFolders, exclude, asmDoc.GetPathName, asmConf) Then
+            If Doc.GetType = swDocASSEMBLY Then
+               Doc.ShowConfiguration2 conf
+               ComponentResearch Doc, components, searchFolders, exclude, conf
+            End If
+         End If
+NextComp:
+      Next
+   End If
     
-    Set asm = asmDoc
-    For Each comp_ In asm.GetComponents(True)
-        Set comp = comp_
-        If comp.IsSuppressed Then  'погашен
-            GoTo NextFor
-        End If
-        Set Doc = comp.GetModelDoc2
-        If Doc Is Nothing Then  'не найден
-            GoTo NextFor
-        End If
-        AddComponent comp.GetModelDoc2, comp.ReferencedConfiguration, components, searchFolders, _
-                     exclude, asmDoc.GetPathName, asmConf
-        If Doc.GetType = swDocASSEMBLY Then
-            ComponentResearch Doc, components, searchFolders, exclude, comp.ReferencedConfiguration
-        End If
-NextFor:
-    Next
 End Sub
 
-Sub AddComponent(Doc As ModelDoc2, Conf As String, ByRef components As Dictionary, _
-                 ByRef searchFolders As Dictionary, exclude As Collection, _
-                 asmPath As String, asmConf As String)
+Function AddComponent(Doc As ModelDoc2, conf As String, ByRef components As Dictionary, _
+                      ByRef searchFolders As Dictionary, exclude As Collection, _
+                      asmPath As String, asmConf As String) As Boolean
+                 
    Dim key As String
-   Dim excludePattern As Variant
    Dim ci As ComponentInfo
    Dim parentCi As ComponentInfo
    Dim parentKey As String
    Dim FolderName As String
+   Dim I As Variant
    
-   For Each excludePattern In exclude
-      If LCase(Doc.GetPathName) Like excludePattern Then
-         Exit Sub
+   AddComponent = False
+   
+   For Each I In exclude
+      If LCase(Doc.GetPathName) Like I Then
+         Exit Function
       End If
    Next
-   key = CreateComponentKey(Doc.GetPathName, Conf)
+   
+   key = CreateComponentKey(Doc.GetPathName, conf)
    
    If Not components.Exists(key) Then
-      Set ci = CreateComponentInfo(Doc, Conf)
+      Set ci = CreateComponentInfo(Doc, conf)
       
       If Doc.GetType = swDocASSEMBLY Then
          ci.Parent = CreateBaseDesigname(ci)
@@ -220,15 +294,17 @@ Sub AddComponent(Doc As ModelDoc2, Conf As String, ByRef components As Dictionar
       components.Add key, ci
       FolderName = gFSO.GetParentFolderName(Doc.GetPathName)
       AddUniqueItemInDict LCase(FolderName), gFSO.GetFolder(FolderName), searchFolders
+      AddComponent = True
    End If
-End Sub
+   
+End Function
 
 Function CreateBaseDesigname(ci As ComponentInfo) As String
     CreateBaseDesigname = ci.BaseDesignation + " " + ci.PropertyName
 End Function
 
-Function CreateComponentKey(docPath As String, Conf As String)
-    CreateComponentKey = gFSO.GetBaseName(docPath) + "@" + Conf
+Function CreateComponentKey(docPath As String, conf As String)
+    CreateComponentKey = gFSO.GetBaseName(docPath) + "@" + conf
 End Function
 
 Function CreatePattern(SoughtForExtensions As Dictionary) As RegExp
@@ -248,34 +324,34 @@ Function CreatePattern(SoughtForExtensions As Dictionary) As RegExp
     Set CreatePattern = Regex
 End Function
 
-Function CreateComponentInfo(Doc As ModelDoc2, Conf As String) As ComponentInfo
+Function CreateComponentInfo(Doc As ModelDoc2, conf As String) As ComponentInfo
     Dim ci As ComponentInfo
     
     Set ci = New ComponentInfo
     Set ci.Doc = Doc
-    ci.Conf = Conf
-    ci.PropertyDesignation = GetProperty(gPropertyDesignation, Doc.Extension, Conf)
-    ci.PropertyName = GetProperty(gPropertyName, Doc.Extension, Conf)
-    ci.PropertyBlank = GetProperty(gPropertyBlank, Doc.Extension, Conf)
+    ci.conf = conf
+    ci.PropertyDesignation = GetProperty(gPropertyDesignation, Doc.Extension, conf)
+    ci.PropertyName = GetProperty(gPropertyName, Doc.Extension, conf)
+    ci.PropertyBlank = GetProperty(gPropertyBlank, Doc.Extension, conf)
     ci.BaseDesignation = GetBaseDesignation(ci.PropertyDesignation)
     Set ci.Drawings = New Dictionary
     
     Set CreateComponentInfo = ci
 End Function
 
-Function GetProperty(property As String, docext As ModelDocExtension, Conf As String) As String
+Function GetProperty(property As String, docext As ModelDocExtension, conf As String) As String
     Dim resultGetProp As swCustomInfoGetResult_e
     Dim rawProp As String, resolvedValue As String
     Dim wasResolved As Boolean
     
-    resultGetProp = docext.CustomPropertyManager(Conf).Get5(property, True, rawProp, resolvedValue, wasResolved)
+    resultGetProp = docext.CustomPropertyManager(conf).Get5(property, True, rawProp, resolvedValue, wasResolved)
     If resultGetProp = swCustomInfoGetResult_NotPresent Then
         docext.CustomPropertyManager("").Get5 property, True, rawProp, resolvedValue, wasResolved
     End If
     GetProperty = resolvedValue
 End Function
 
-Sub CollectAllDrawings(pattern As RegExp, searchFolders As Dictionary, ByRef Drawings As Collection)
+Sub CollectAllDrawings(pattern As RegExp, searchFolders As Dictionary, ByRef Drawings As Dictionary)
     Dim aFolder_ As Variant
     Dim aFolder As Folder
     Dim f_ As Variant
@@ -286,7 +362,7 @@ Sub CollectAllDrawings(pattern As RegExp, searchFolders As Dictionary, ByRef Dra
         For Each f_ In aFolder.Files
             Set f = f_
             If pattern.Test(f.path) Then
-                Drawings.Add f.path
+                Drawings.Add f.path, ""
             End If
         Next
     Next
@@ -306,12 +382,11 @@ Function GetBaseDesignation(designation As String) As String
     End If
 End Function
 
-Sub CheckMatchFileAndComponent(fpath As String, ByRef ci As ComponentInfo)
+Function CheckMatchFileAndComponent(fpath As String, ByRef ci As ComponentInfo) As Boolean
    Const regAnyPath = ".*\\"
    Const regRev = " \(изм\.([0-9]{2})\)"
    Const regCode = "( *(Р|СБ|РСБ|ВО|ТЧ|ГЧ|МЭ|МЧ|УЧ|ЭСБ|ПЭ|ПЗ|ТБ|РР|И|ТУ|ПМ|ВС|ВД|ВП|ВИ|ДП|ПТ|ЭП|ТП|ВДЭ|AD|ID))?"
    
-   Dim Regex As RegExp
    Dim Extension As String
    Dim regExtension As String
    Dim regDesignation As String
@@ -320,9 +395,7 @@ Sub CheckMatchFileAndComponent(fpath As String, ByRef ci As ComponentInfo)
    Dim revision As Integer
    Dim priority As Integer
    
-   Set Regex = New RegExp
-   Regex.Global = True
-   Regex.IgnoreCase = True
+   CheckMatchFileAndComponent = False
    
    'Lower case fo extension is required!
    
@@ -334,95 +407,103 @@ Sub CheckMatchFileAndComponent(fpath As String, ByRef ci As ComponentInfo)
    priority = 10
    
    'Обозначение-01 Наименование
-   ChangeRegex priority, Regex, regAnyPath + regDesignation + regName + regExtension
-   If Regex.Test(fpath) Then
-      AddMatchingDrawing 0, Extension, fpath, ci, priority
-      Exit Sub
+   ChangeRegex priority, gRegex, regAnyPath + regDesignation + regName + regExtension
+   If gRegex.Test(fpath) Then
+      CheckMatchFileAndComponent = AddMatchingDrawing(0, Extension, fpath, ci, priority)
+      Exit Function
    End If
    
    'Обозначение-01 Наименование (изм.##)
-   ChangeRegex priority, Regex, regAnyPath + regDesignation + regName + regRev + regExtension
-   If Regex.Test(fpath) Then
-      revision = CInt(Regex.Execute(fpath)(0).SubMatches(2))
-      AddMatchingDrawing revision, Extension, fpath, ci, priority
-      Exit Sub
+   ChangeRegex priority, gRegex, regAnyPath + regDesignation + regName + regRev + regExtension
+   If gRegex.Test(fpath) Then
+      revision = CInt(gRegex.Execute(fpath)(0).SubMatches(2))
+      CheckMatchFileAndComponent = AddMatchingDrawing(revision, Extension, fpath, ci, priority)
+      Exit Function
    End If
    
    'Обозначение-01
-   ChangeRegex priority, Regex, regAnyPath + regDesignation + regExtension
-   If Regex.Test(fpath) Then
-      AddMatchingDrawing 0, Extension, fpath, ci, priority
-      Exit Sub
+   ChangeRegex priority, gRegex, regAnyPath + regDesignation + regExtension
+   If gRegex.Test(fpath) Then
+      CheckMatchFileAndComponent = AddMatchingDrawing(0, Extension, fpath, ci, priority)
+      Exit Function
    End If
    
    'Обозначение-01 (изм.##)
-   ChangeRegex priority, Regex, regAnyPath + regDesignation + regRev + regExtension
-   If Regex.Test(fpath) Then
-      revision = CInt(Regex.Execute(fpath)(0).SubMatches(2))
-      AddMatchingDrawing revision, Extension, fpath, ci, priority
-      Exit Sub
+   ChangeRegex priority, gRegex, regAnyPath + regDesignation + regRev + regExtension
+   If gRegex.Test(fpath) Then
+      revision = CInt(gRegex.Execute(fpath)(0).SubMatches(2))
+      CheckMatchFileAndComponent = AddMatchingDrawing(revision, Extension, fpath, ci, priority)
+      Exit Function
    End If
-
+   
    'Для разверток не допускаются чертежи с базовым обозначением.
    If Extension <> "dwg" And Extension <> "dxf" Then
-    
+   
       'БазовоеОбозначение Наименование
-      ChangeRegex priority, Regex, regAnyPath + regBaseDesignation + regName + regExtension
-      If Regex.Test(fpath) Then
-         AddMatchingDrawing 0, Extension, fpath, ci, priority
-         Exit Sub
+      ChangeRegex priority, gRegex, regAnyPath + regBaseDesignation + regName + regExtension
+      If gRegex.Test(fpath) Then
+         CheckMatchFileAndComponent = AddMatchingDrawing(0, Extension, fpath, ci, priority)
+         Exit Function
       End If
       
       'БазовоеОбозначение Наименование (изм.##)
-      ChangeRegex priority, Regex, regAnyPath + regBaseDesignation + regName + regRev + regExtension
-      If Regex.Test(fpath) Then
-         revision = CInt(Regex.Execute(fpath)(0).SubMatches(2))
-         AddMatchingDrawing revision, Extension, fpath, ci, priority
-         Exit Sub
+      ChangeRegex priority, gRegex, regAnyPath + regBaseDesignation + regName + regRev + regExtension
+      If gRegex.Test(fpath) Then
+         revision = CInt(gRegex.Execute(fpath)(0).SubMatches(2))
+         CheckMatchFileAndComponent = AddMatchingDrawing(revision, Extension, fpath, ci, priority)
+         Exit Function
       End If
       
       'БазовоеОбозначение
-      ChangeRegex priority, Regex, regAnyPath + regBaseDesignation + regExtension
-      If Regex.Test(fpath) Then
-         AddMatchingDrawing 0, Extension, fpath, ci, priority
-         Exit Sub
+      ChangeRegex priority, gRegex, regAnyPath + regBaseDesignation + regExtension
+      If gRegex.Test(fpath) Then
+         CheckMatchFileAndComponent = AddMatchingDrawing(0, Extension, fpath, ci, priority)
+         Exit Function
       End If
       
       'БазовоеОбозначение (изм.##)
-      ChangeRegex priority, Regex, regAnyPath + regBaseDesignation + regRev + regExtension
-      If Regex.Test(fpath) Then
-         revision = CInt(Regex.Execute(fpath)(0).SubMatches(2))
-         AddMatchingDrawing revision, Extension, fpath, ci, priority
-         Exit Sub
+      ChangeRegex priority, gRegex, regAnyPath + regBaseDesignation + regRev + regExtension
+      If gRegex.Test(fpath) Then
+         revision = CInt(gRegex.Execute(fpath)(0).SubMatches(2))
+         CheckMatchFileAndComponent = AddMatchingDrawing(revision, Extension, fpath, ci, priority)
+         Exit Function
       End If
-      
+
    End If
-End Sub
+   
+End Function
 
 Sub ChangeRegex(ByRef priority As Integer, ByRef Regex As RegExp, pattern As String)
     priority = priority - 1
     Regex.pattern = pattern
 End Sub
 
-Sub AddMatchingDrawing(revision As Integer, Extension As String, _
-                       fpath As String, ByRef ci As ComponentInfo, priority As Integer)
-    Dim dr As DrawingRecord
-    
-    If Not ci.Drawings.Exists(Extension) Then
-        Set dr = New DrawingRecord
-        dr.path = fpath
-        dr.rev = revision
-        dr.priority = priority
-        ci.Drawings.Add Extension, dr
-    Else
-        Set dr = ci.Drawings(Extension)
-        If (revision > dr.rev) Or (revision = dr.rev And priority > dr.priority) Then
-            dr.path = fpath
-            dr.rev = revision
-            dr.priority = priority
-        End If
-    End If
-End Sub
+Function AddMatchingDrawing( _
+   revision As Integer, Extension As String, fpath As String, _
+   ByRef ci As ComponentInfo, priority As Integer) As Boolean
+                       
+   Dim dr As DrawingRecord
+   
+   AddMatchingDrawing = False
+   
+   If Not ci.Drawings.Exists(Extension) Then
+      Set dr = New DrawingRecord
+      dr.path = fpath
+      dr.rev = revision
+      dr.priority = priority
+      ci.Drawings.Add Extension, dr
+      AddMatchingDrawing = True
+   Else
+      Set dr = ci.Drawings(Extension)
+      If (revision > dr.rev) Or (revision = dr.rev And priority > dr.priority) Then
+         dr.path = fpath
+         dr.rev = revision
+         dr.priority = priority
+         AddMatchingDrawing = True
+      End If
+   End If
+   
+End Function
 
 Function CreateExclude(text As String) As Collection
     Dim line_ As Variant

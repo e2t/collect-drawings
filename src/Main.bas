@@ -26,7 +26,8 @@ Sub Main()
     
 End Sub
 
-Sub Run(SoughtForExtensions As Dictionary, target As String, excludeLines As String)
+Sub Run(SoughtForExtensions As Dictionary, target As String, excludeLines As String, _
+        includeLines As String)
 
     Dim components As Dictionary
     Dim searchFolders As Dictionary
@@ -35,13 +36,15 @@ Sub Run(SoughtForExtensions As Dictionary, target As String, excludeLines As Str
     Dim NotFound As Dictionary
     Dim copied As Dictionary
     Dim exclude As Collection
+    Dim include As Collection
     Dim currentDocConf As String
     Dim currentAsm As AssemblyDoc
     
     Set components = New Dictionary
     Set searchFolders = New Dictionary
-    Set exclude = CreateExclude(excludeLines)
-    currentDocConf = gCurrentDoc.ConfigurationManager.ActiveConfiguration.name
+    Set exclude = SplitLine(excludeLines)
+    Set include = SplitLine(includeLines)
+    currentDocConf = gCurrentDoc.ConfigurationManager.ActiveConfiguration.Name
     
     MainForm.Output "Решение компонентов сборки..."
     Set currentAsm = gCurrentDoc
@@ -50,6 +53,7 @@ Sub Run(SoughtForExtensions As Dictionary, target As String, excludeLines As Str
     MainForm.Output "Анализ компонентов сборки..."
     AddComponent gCurrentDoc, currentDocConf, components, searchFolders, exclude, "", ""
     ComponentResearch gCurrentDoc, components, searchFolders, exclude, currentDocConf
+    AddUserSearchFolders include, searchFolders
     
     Set Drawings = New Dictionary
     Set pattern = CreatePattern(SoughtForExtensions)

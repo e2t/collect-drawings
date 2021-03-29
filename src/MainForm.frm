@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} MainForm 
    Caption         =   "Собрать чертежи открытой модели"
-   ClientHeight    =   8865.001
+   ClientHeight    =   10785
    ClientLeft      =   45
    ClientTop       =   390
    ClientWidth     =   12330
@@ -13,7 +13,6 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
 Option Explicit
 
 Public Sub Output(text As String)
@@ -27,6 +26,10 @@ End Sub
 
 Private Sub excludeTxt_Change()
     SaveStrSetting "exclude", Me.excludeTxt.text
+End Sub
+
+Private Sub includeTxt_Change()
+    SaveStrSetting "include", Me.includeTxt.text
 End Sub
 
 Private Sub pdfChk_Click()
@@ -63,8 +66,8 @@ Private Sub runBtn_Click()
     If Me.dxfChk.value Then
         SoughtForExtensions.Add "dxf", 0
     End If
-    If SoughtForExtensions.count > 0 Then
-        Run SoughtForExtensions, Me.targetTxt.text, Me.excludeTxt.text
+    If SoughtForExtensions.Count > 0 Then
+        Run SoughtForExtensions, Me.targetTxt.text, Me.excludeTxt.text, Me.includeTxt.text
         Me.memo.SetFocus
     End If
 End Sub
@@ -75,5 +78,6 @@ Private Sub UserForm_Initialize()
     Me.dwgChk.value = GetBoolSetting("dwg")
     Me.dxfChk.value = GetBoolSetting("dxf")
     Me.excludeTxt.text = GetStrSetting("exclude")
+    Me.includeTxt.text = GetStrSetting("include")
     targetTxt.text = GetDefaultTarget
 End Sub

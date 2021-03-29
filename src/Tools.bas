@@ -117,7 +117,7 @@ End Sub
 Sub CopyFiles(copied As Dictionary, target As String)
 
    Dim f_ As Variant
-   Dim f As String
+   Dim F As String
    Dim newname As String
    Dim FolderName As String
    
@@ -126,16 +126,16 @@ Sub CopyFiles(copied As Dictionary, target As String)
    End If
    
    For Each f_ In copied.Keys
-      f = f_
-      FolderName = target + "\" + copied(f)
+      F = f_
+      FolderName = target + "\" + copied(F)
       If Not gFSO.FolderExists(FolderName) Then
          gFSO.CreateFolder FolderName
       End If
       
-      newname = FolderName + "\" + gFSO.GetFileName(f)
+      newname = FolderName + "\" + gFSO.GetFileName(F)
       
-      If LCase(f) <> LCase(newname) Then
-         gFSO.CopyFile f, newname
+      If LCase(F) <> LCase(newname) Then
+         gFSO.CopyFile F, newname
       End If
    Next
     
@@ -293,11 +293,39 @@ Function AddComponent(Doc As ModelDoc2, conf As String, ByRef components As Dict
 
       components.Add key, ci
       FolderName = gFSO.GetParentFolderName(Doc.GetPathName)
-      AddUniqueItemInDict LCase(FolderName), gFSO.GetFolder(FolderName), searchFolders
+      AddSearchFolder FolderName, searchFolders, False
       AddComponent = True
    End If
    
 End Function
+
+Sub AddSearchFolder(FolderName As String, ByRef searchFolders As Dictionary, IsRecursively As Boolean)
+
+  Dim AFolder As Folder
+  Dim Sf As SearchFolder
+  
+  On Error Resume Next
+  Set AFolder = gFSO.GetFolder(FolderName)
+  If Not AFolder Is Nothing Then
+    Set Sf = New SearchFolder
+    Set Sf.AFolder = AFolder
+    Sf.IsRecursively = IsRecursively
+    AddUniqueItemInDict LCase(FolderName), Sf, searchFolders
+  End If
+
+End Sub
+
+Sub AddUserSearchFolders(include As Collection, ByRef searchFolders As Dictionary)
+
+  Dim I As Variant
+  Dim FolderName As String
+  
+  For Each I In include
+    FolderName = I
+    AddSearchFolder FolderName, searchFolders, True
+  Next
+
+End Sub
 
 Function CreateBaseDesigname(ci As ComponentInfo) As String
     CreateBaseDesigname = ci.BaseDesignation + " " + ci.PropertyName
@@ -352,20 +380,36 @@ Function GetProperty(property As String, docext As ModelDocExtension, conf As St
 End Function
 
 Sub CollectAllDrawings(pattern As RegExp, searchFolders As Dictionary, ByRef Drawings As Dictionary)
-    Dim aFolder_ As Variant
-    Dim aFolder As Folder
-    Dim f_ As Variant
-    Dim f As File
-    
-    For Each aFolder_ In searchFolders.Items
-        Set aFolder = aFolder_
-        For Each f_ In aFolder.Files
-            Set f = f_
-            If pattern.Test(f.path) Then
-                Drawings.Add f.path, ""
-            End If
-        Next
+
+  Dim I As Variant
+  
+  For Each I In searchFolders.Items
+    CollectFolderDrawings I, pattern, Drawings
+  Next
+
+End Sub
+
+'Sf меняется внутри функции, на коллекцию это не должно влиять (уменьшение расхода памяти).
+Sub CollectFolderDrawings(ByVal Sf As SearchFolder, pattern As RegExp, ByRef Drawings As Dictionary)
+
+  Dim I As Variant
+  Dim F As File
+  Dim SubFolder As Folder
+  
+  For Each I In Sf.AFolder.Files
+    Set F = I
+    If pattern.Test(F.path) Then
+      Drawings.Add F.path, ""
+    End If
+  Next
+  
+  If Sf.IsRecursively Then
+    For Each I In Sf.AFolder.SubFolders
+      Set Sf.AFolder = I
+      CollectFolderDrawings Sf, pattern, Drawings
     Next
+  End If
+
 End Sub
 
 Function GetBaseDesignation(designation As String) As String
@@ -505,19 +549,19 @@ Function AddMatchingDrawing( _
    
 End Function
 
-Function CreateExclude(text As String) As Collection
-    Dim line_ As Variant
+Function SplitLine(text As String) As Collection
+    Dim I As Variant
     Dim line As String
     Dim col As Collection
     
     Set col = New Collection
-    For Each line_ In Split(text, vbNewLine)
-        line = Trim(line_)
+    For Each I In Split(text, vbNewLine)
+        line = Trim(I)
         If line <> "" Then
             col.Add LCase(line)
         End If
     Next
-    Set CreateExclude = col
+    Set SplitLine = col
 End Function
 
 'See: https://docs.microsoft.com/en-us/dotnet/api/System.Text.RegularExpressions.Regex.Escape

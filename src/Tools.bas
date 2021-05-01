@@ -127,7 +127,7 @@ Sub CopyFiles(copied As Dictionary, target As String)
    
    For Each f_ In copied.Keys
       F = f_
-      FolderName = target + "\" + copied(F)
+      FolderName = target + "\" + Trim(copied(F))
       If Not gFSO.FolderExists(FolderName) Then
          gFSO.CreateFolder FolderName
       End If

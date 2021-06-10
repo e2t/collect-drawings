@@ -428,8 +428,8 @@ End Function
 
 Function CheckMatchFileAndComponent(fpath As String, ByRef ci As ComponentInfo) As Boolean
    Const regAnyPath = ".*\\"
-   Const regRev = " \(изм\.([0-9]{2})\)"
-   Const regCode = "( *(Р|СБ|РСБ|ВО|ТЧ|ГЧ|МЭ|МЧ|УЧ|ЭСБ|ПЭ|ПЗ|ТБ|РР|И|ТУ|ПМ|ВС|ВД|ВП|ВИ|ДП|ПТ|ЭП|ТП|ВДЭ|AD|ID))?"
+   Const regRev = " \((изм|rev)\.([0-9]{2})\)"
+   Const regCode = "(( *|\.)?(Р|СБ|РСБ|ВО|ТЧ|ГЧ|МЭ|МЧ|УЧ|ЭСБ|ПЭ|ПЗ|ТБ|РР|И|ТУ|ПМ|ВС|ВД|ВП|ВИ|ДП|ПТ|ЭП|ТП|ВДЭ|AD|ID))?"
    
    Dim Extension As String
    Dim regExtension As String
@@ -460,7 +460,8 @@ Function CheckMatchFileAndComponent(fpath As String, ByRef ci As ComponentInfo) 
    'Обозначение-01 Наименование (изм.##)
    ChangeRegex priority, gRegex, regAnyPath + regDesignation + regName + regRev + regExtension
    If gRegex.Test(fpath) Then
-      revision = CInt(gRegex.Execute(fpath)(0).SubMatches(2))
+      revision = CInt(gRegex.Execute(fpath)(0).SubMatches(4))
+      'MsgBox revision & vbNewLine & fpath
       CheckMatchFileAndComponent = AddMatchingDrawing(revision, Extension, fpath, ci, priority)
       Exit Function
    End If
@@ -475,7 +476,8 @@ Function CheckMatchFileAndComponent(fpath As String, ByRef ci As ComponentInfo) 
    'Обозначение-01 (изм.##)
    ChangeRegex priority, gRegex, regAnyPath + regDesignation + regRev + regExtension
    If gRegex.Test(fpath) Then
-      revision = CInt(gRegex.Execute(fpath)(0).SubMatches(2))
+      revision = CInt(gRegex.Execute(fpath)(0).SubMatches(4))
+      'MsgBox revision & vbNewLine & fpath
       CheckMatchFileAndComponent = AddMatchingDrawing(revision, Extension, fpath, ci, priority)
       Exit Function
    End If
@@ -493,7 +495,8 @@ Function CheckMatchFileAndComponent(fpath As String, ByRef ci As ComponentInfo) 
       'БазовоеОбозначение Наименование (изм.##)
       ChangeRegex priority, gRegex, regAnyPath + regBaseDesignation + regName + regRev + regExtension
       If gRegex.Test(fpath) Then
-         revision = CInt(gRegex.Execute(fpath)(0).SubMatches(2))
+         revision = CInt(gRegex.Execute(fpath)(0).SubMatches(4))
+         'MsgBox revision & vbNewLine & fpath
          CheckMatchFileAndComponent = AddMatchingDrawing(revision, Extension, fpath, ci, priority)
          Exit Function
       End If
@@ -508,7 +511,8 @@ Function CheckMatchFileAndComponent(fpath As String, ByRef ci As ComponentInfo) 
       'БазовоеОбозначение (изм.##)
       ChangeRegex priority, gRegex, regAnyPath + regBaseDesignation + regRev + regExtension
       If gRegex.Test(fpath) Then
-         revision = CInt(gRegex.Execute(fpath)(0).SubMatches(2))
+         revision = CInt(gRegex.Execute(fpath)(0).SubMatches(4))
+         'MsgBox revision & vbNewLine & fpath
          CheckMatchFileAndComponent = AddMatchingDrawing(revision, Extension, fpath, ci, priority)
          Exit Function
       End If

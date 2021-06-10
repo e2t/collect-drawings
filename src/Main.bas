@@ -50,7 +50,7 @@ Sub Run(SoughtForExtensions As Dictionary, target As String, excludeLines As Str
     Set currentAsm = gCurrentDoc
     currentAsm.ResolveAllLightWeightComponents False
     
-    MainForm.Output "Анализ компонентов сборки..."
+    MainForm.Append " OK" + vbNewLine + "Анализ компонентов сборки..."
     AddComponent gCurrentDoc, currentDocConf, components, searchFolders, exclude, "", ""
     ComponentResearch gCurrentDoc, components, searchFolders, exclude, currentDocConf
     AddUserSearchFolders include, searchFolders
@@ -58,16 +58,16 @@ Sub Run(SoughtForExtensions As Dictionary, target As String, excludeLines As Str
     Set Drawings = New Dictionary
     Set pattern = CreatePattern(SoughtForExtensions)
     
-    MainForm.Output "Поиск чертежей..."
+    MainForm.Append " OK" + vbNewLine + "Поиск чертежей..."
     CollectAllDrawings pattern, searchFolders, Drawings
     
-    MainForm.Output "Сопоставление чертежей компонентам..."
+    MainForm.Append " OK" + vbNewLine + "Сопоставление чертежей компонентам..."
     MatchFiles components, Drawings
     
     Set NotFound = New Dictionary
     Set copied = New Dictionary
     
-    MainForm.Output "Копирование чертежей..."
+    MainForm.Append " OK" + vbNewLine + "Копирование чертежей..."
     UniqueCopiedFiles components, copied, NotFound, SoughtForExtensions
     CopyFiles copied, target
     

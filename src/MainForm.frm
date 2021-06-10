@@ -13,11 +13,21 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
 Option Explicit
 
 Public Sub Output(text As String)
-    Me.memo.text = text
-    Me.Repaint
+
+  Me.memo.text = text
+  Me.Repaint
+    
+End Sub
+
+Public Sub Append(text As String)
+  
+  Me.memo.text = Me.memo.text + text
+  Me.Repaint
+  
 End Sub
 
 Private Sub cancelBtn_Click()

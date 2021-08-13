@@ -9,6 +9,6 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 
-Public path As String
-Public rev As Integer
-Public priority As Integer
+Public Path As String
+Public Rev As Integer
+Public Priority As Integer

@@ -2,35 +2,37 @@ Attribute VB_Name = "QuickSortFunction"
 Option Explicit
 
 'https://stackoverflow.com/questions/152319/vba-array-sort-function
-Public Sub QuickSort(ByRef vArray As Variant, inLow As Long, inHi As Long)
-    Dim pivot   As Variant
-    Dim tmpSwap As Variant
-    Dim tmpLow  As Long
-    Dim tmpHi   As Long
-    
-    tmpLow = inLow
-    tmpHi = inHi
-    
-    pivot = vArray((inLow + inHi) \ 2)
-    
-    While (tmpLow <= tmpHi)
-        While (vArray(tmpLow) < pivot And tmpLow < inHi)
-            tmpLow = tmpLow + 1
-        Wend
-        
-        While (pivot < vArray(tmpHi) And tmpHi > inLow)
-            tmpHi = tmpHi - 1
-        Wend
-        
-        If (tmpLow <= tmpHi) Then
-            tmpSwap = vArray(tmpLow)
-            vArray(tmpLow) = vArray(tmpHi)
-            vArray(tmpHi) = tmpSwap
-            tmpLow = tmpLow + 1
-            tmpHi = tmpHi - 1
-        End If
+Public Sub QuickSort(ByRef vArray As Variant, InLow As Long, InHi As Long)
+
+  Dim Pivot   As Variant
+  Dim TmpSwap As Variant
+  Dim TmpLow  As Long
+  Dim TmpHi   As Long
+  
+  TmpLow = InLow
+  TmpHi = InHi
+  
+  Pivot = vArray((InLow + InHi) \ 2)
+  
+  While (TmpLow <= TmpHi)
+    While (vArray(TmpLow) < Pivot And TmpLow < InHi)
+      TmpLow = TmpLow + 1
     Wend
     
-    If (inLow < tmpHi) Then QuickSort vArray, inLow, tmpHi
-    If (tmpLow < inHi) Then QuickSort vArray, tmpLow, inHi
+    While (Pivot < vArray(TmpHi) And TmpHi > InLow)
+      TmpHi = TmpHi - 1
+    Wend
+    
+    If (TmpLow <= TmpHi) Then
+      TmpSwap = vArray(TmpLow)
+      vArray(TmpLow) = vArray(TmpHi)
+      vArray(TmpHi) = TmpSwap
+      TmpLow = TmpLow + 1
+      TmpHi = TmpHi - 1
+    End If
+  Wend
+  
+  If (InLow < TmpHi) Then QuickSort vArray, InLow, TmpHi
+  If (TmpLow < InHi) Then QuickSort vArray, TmpLow, InHi
+    
 End Sub

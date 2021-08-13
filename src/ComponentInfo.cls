@@ -10,7 +10,7 @@ Attribute VB_Exposed = False
 Option Explicit
 
 Public Doc As ModelDoc2
-Public conf As String
+Public Conf As String
 Public PropertyDesignation As String 'Обозначение
 Public PropertyName As String 'Наименование
 Public PropertyBlank As String 'Заготовка

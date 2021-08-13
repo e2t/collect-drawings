@@ -1,49 +1,67 @@
 Attribute VB_Name = "Settings"
 Option Explicit
 
-Const macroName = "CollectDrawings"
-Const macroSection = "Main"
+Const MacroName = "CollectDrawings"
+Const MacroSection = "Main"
 
-Sub SaveStrSetting(key As String, value As String)
-    SaveSetting macroName, macroSection, key, value
+Sub SaveStrSetting(Key As String, Value As String)
+
+  SaveSetting MacroName, MacroSection, Key, Value
+    
 End Sub
 
-Sub SaveIntSetting(key As String, value As Integer)
-    SaveStrSetting key, Str(value)
+Sub SaveIntSetting(Key As String, Value As Integer)
+
+  SaveStrSetting Key, Str(Value)
+    
 End Sub
 
-Sub SaveBoolSetting(key As String, value As Boolean)
-    SaveStrSetting key, BoolToStr(value)
+Sub SaveBoolSetting(Key As String, Value As Boolean)
+
+  SaveStrSetting Key, BoolToStr(Value)
+    
 End Sub
 
-Function GetStrSetting(key As String, Optional default As String = "") As String
-    GetStrSetting = GetSetting(macroName, macroSection, key, default)
+Function GetStrSetting(Key As String, Optional Default As String = "") As String
+
+  GetStrSetting = GetSetting(MacroName, MacroSection, Key, Default)
+    
 End Function
 
-Function GetBoolSetting(key As String) As Boolean
-    GetBoolSetting = StrToBool(GetStrSetting(key, "0"))
+Function GetBoolSetting(Key As String) As Boolean
+
+  GetBoolSetting = StrToBool(GetStrSetting(Key, "0"))
+    
 End Function
 
-Function GetIntSetting(key As String) As Integer
-    GetIntSetting = StrToInt(GetStrSetting(key, "0"))
+Function GetIntSetting(Key As String) As Integer
+
+  GetIntSetting = StrToInt(GetStrSetting(Key, "0"))
+    
 End Function
 
-Function StrToInt(value As String) As Integer
-    If IsNumeric(value) Then
-        StrToInt = CInt(value)
-    Else
-        StrToInt = 0
-    End If
+Function StrToInt(Value As String) As Integer
+
+  If IsNumeric(Value) Then
+    StrToInt = CInt(Value)
+  Else
+    StrToInt = 0
+  End If
+  
 End Function
 
-Function StrToBool(value As String) As Boolean
-    If IsNumeric(value) Then
-        StrToBool = CInt(value)
-    Else
-        StrToBool = False
-    End If
+Function StrToBool(Value As String) As Boolean
+
+  If IsNumeric(Value) Then
+    StrToBool = CInt(Value)
+  Else
+    StrToBool = False
+  End If
+  
 End Function
 
-Function BoolToStr(value As Boolean) As String
-    BoolToStr = Str(CInt(value))
+Function BoolToStr(Value As Boolean) As String
+
+  BoolToStr = Str(CInt(Value))
+    
 End Function

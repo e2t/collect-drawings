@@ -244,9 +244,13 @@ Sub ComponentResearch( _
       If Comp.IsSuppressed Then  'погашен
         GoTo NextComp
       End If
+      If Comp.ExcludeFromBOM Then  'исключен из спецификации
+        GoTo NextComp
+      End If
       If Comp.IsEnvelope Then  'конверт
         GoTo NextComp
       End If
+      
       Set Doc = Comp.GetModelDoc2
       If Doc Is Nothing Then  'не найден
         GoTo NextComp

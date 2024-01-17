@@ -1,4 +1,6 @@
-﻿# Collect-Drawings
+This project has been moved to https://codeberg.org/e2t/collect-drawings
+ 
+ # Collect-Drawings
 
 Макрос для сбора чертежей по модели.
 
